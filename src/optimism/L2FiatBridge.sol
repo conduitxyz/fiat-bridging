@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {Predeploys} from "src/libraries/Predeploys.sol";
-import {UsdcBridge} from "src/universal/FiatBridge.sol";
-import {ISemver} from "src/universal/ISemver.sol";
-import {CrossDomainMessenger} from "src/universal/CrossDomainMessenger.sol";
-import {Constants} from "src/libraries/Constants.sol";
+import {Predeploys} from "src/optimism/libraries/Predeploys.sol";
+import {FiatBridge} from "src/optimism/universal/FiatBridge.sol";
+import {ISemver} from "src/optimism/universal/ISemver.sol";
+import {CrossDomainMessenger} from "src/optimism/universal/CrossDomainMessenger.sol";
+import {Constants} from "src/optimism/libraries/Constants.sol";
 
 /// @custom:proxied
-/// @title L2UsdcBridge
-/// @notice The L2UsdcBridge is responsible for transfering FIAT tokens between L1 and
+/// @title L2FiatBridge
+/// @notice The L2FiatBridge is responsible for transfering FIAT tokens between L1 and
 ///         L2.
 ///         NOTE: this contract is not intended to support all variations of ERC20 tokens. Examples
 ///         of some token types that may not be properly supported by this contract include, but are
 ///         not limited to: tokens with transfer fees, rebasing tokens, and tokens with blocklists.
-contract L2UsdcBridge is UsdcBridge, ISemver {
+contract L2FiatBridge is FiatBridge, ISemver {
     /// @custom:legacy
     /// @notice Emitted whenever a withdrawal from L2 to L1 is initiated.
     /// @param l1Token   Address of the token on L1.
@@ -52,27 +52,27 @@ contract L2UsdcBridge is UsdcBridge, ISemver {
     /// @custom:semver 1.8.0
     string public constant version = "1.8.0";
 
-    /// @notice Constructs the L2UsdcBridge contract.
-    constructor() UsdcBridge() {}
+    /// @notice Constructs the L2FiatBridge contract.
+    constructor() FiatBridge() {}
 
     /// @notice Initializes the contract.
     /// @param _otherBridge The L1 bridge address.
-    /// @param _l1Usdc      The ERC20 address on the L1.
-    /// @param _l2Usdc      The ERC20 address on the L2.
+    /// @param _l1Fiat      The ERC20 address on the L1.
+    /// @param _l2Fiat      The ERC20 address on the L2.
     /// @param _owner       The initial owner of this contract.
     function initialize(
-        UsdcBridge _otherBridge,
-        address _l1Usdc,
-        address _l2Usdc,
+        FiatBridge _otherBridge,
+        address _l1Fiat,
+        address _l2Fiat,
         address _owner
     ) public initializer {
-        __UsdcBridge_init({
+        __FiatBridge_init({
             _messenger: CrossDomainMessenger(
                 Predeploys.L2_CROSS_DOMAIN_MESSENGER
             ),
             _otherBridge: _otherBridge,
-            _l1Usdc: _l1Usdc,
-            _l2Usdc: _l2Usdc,
+            _l1Fiat: _l1Fiat,
+            _l2Fiat: _l2Fiat,
             _owner: _owner
         });
     }
@@ -187,7 +187,7 @@ contract L2UsdcBridge is UsdcBridge, ISemver {
 
     /// @notice Emits the legacy WithdrawalInitiated event followed by the ERC20BridgeInitiated
     ///         event. This is necessary for backwards compatibility with the legacy bridge.
-    /// @inheritdoc UsdcBridge
+    /// @inheritdoc FiatBridge
     function _emitERC20BridgeInitiated(
         address _localToken,
         address _remoteToken,
@@ -216,7 +216,7 @@ contract L2UsdcBridge is UsdcBridge, ISemver {
 
     /// @notice Emits the legacy DepositFinalized event followed by the ERC20BridgeFinalized event.
     ///         This is necessary for backwards compatibility with the legacy bridge.
-    /// @inheritdoc UsdcBridge
+    /// @inheritdoc FiatBridge
     function _emitERC20BridgeFinalized(
         address _localToken,
         address _remoteToken,
@@ -243,11 +243,11 @@ contract L2UsdcBridge is UsdcBridge, ISemver {
         );
     }
 
-    /// @inheritdoc UsdcBridge
-    function _isCorrectUsdcTokenPair(
+    /// @inheritdoc FiatBridge
+    function _isCorrectFiatTokenPair(
         address _localToken,
         address _remoteToken
     ) internal view override returns (bool) {
-        return _isL2Usdc(_localToken) && _isL1Usdc(_remoteToken);
+        return _isL2Fiat(_localToken) && _isL1Fiat(_remoteToken);
     }
 }

@@ -13,11 +13,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IPartialFiat} from "src/L1/IPartialFiat.sol";
 
 /// @custom:upgradeable
-/// @title UsdcBridge
-/// @notice UsdcBridge is a base contract for the L1 and L2 standard ERC20 bridges. It handles
+/// @title FiatBridges
+/// @notice FiatBridges is a base contract for the L1 and L2 standard ERC20 bridges. It handles
 ///         the core bridging logic, including escrowing tokens that are native to the local chain
 ///         and minting/burning tokens that are native to the remote chain.
-abstract contract UsdcBridge is Initializable, Pausable, Ownable {
+abstract contract FiatBridges is Initializable, Pausable, Ownable {
     using SafeERC20 for IERC20;
 
     /// @notice The L2 gas limit set when eth is depoisited using the receive() function.
@@ -42,7 +42,7 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
 
     /// @notice Corresponding bridge on the other domain.
     /// @custom:network-specific
-    UsdcBridge public otherBridge;
+    FiatBridges public otherBridge;
 
     /// @notice Address of the token on L1.
     address public l1Usdc;
@@ -93,7 +93,7 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
     modifier onlyEOA() {
         require(
             !Address.isContract(msg.sender),
-            "UsdcBridge: function can only be called from an EOA"
+            "FiatBridges: function can only be called from an EOA"
         );
         _;
     }
@@ -103,7 +103,7 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
         require(
             msg.sender == address(messenger) &&
                 messenger.xDomainMessageSender() == address(otherBridge),
-            "UsdcBridge: function can only be called from the other bridge"
+            "FiatBridges: function can only be called from the other bridge"
         );
         _;
     }
@@ -118,10 +118,10 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
 
     /// @notice Initializer.
     /// @param _messenger   Contract for CrossDomainMessenger on this network.
-    /// @param _otherBridge Contract for the other UsdcBridge contract.
-    function __UsdcBridge_init(
+    /// @param _otherBridge Contract for the other FiatBridges contract.
+    function __FiatBridges_init(
         CrossDomainMessenger _messenger,
-        UsdcBridge _otherBridge,
+        FiatBridges _otherBridge,
         address _l1Usdc,
         address _l2Usdc,
         address _owner
@@ -143,13 +143,13 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
 
     /// @notice Checks if the given token is the correct l1 token.
     /// @param _token The token to check.
-    function _isL2Usdc(address _token) internal view returns (bool) {
+    function _isL2Fiat(address _token) internal view returns (bool) {
         return _token == l2Usdc;
     }
 
     /// @notice Checks if the given token is the correct l2 token.
     /// @param _token The token to check.
-    function _isL1Usdc(address _token) internal view returns (bool) {
+    function _isL1Fiat(address _token) internal view returns (bool) {
         return _token == l1Usdc;
     }
 
@@ -171,7 +171,7 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
     ///         Public getter is legacy and will be removed in the future. Use `otherBridge` instead.
     /// @return Contract of the bridge on the other network.
     /// @custom:legacy
-    function OTHER_BRIDGE() external view returns (UsdcBridge) {
+    function OTHER_BRIDGE() external view returns (FiatBridges) {
         return otherBridge;
     }
 
@@ -250,7 +250,7 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
     }
 
     /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
-    ///         UsdcBridge contract on the remote chain.
+    ///         FiatBridges contract on the remote chain.
     /// @param _localToken  Address of the ERC20 on this chain.
     /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _from        Address of the sender.
@@ -270,14 +270,14 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
         // this check is not strictly required as it should have been ensured by the
         // remote bridge, but doesn't hurt.
         require(
-            _isCorrectUsdcTokenPair(_localToken, _remoteToken),
+            _isCorrectFiatTokenPair(_localToken, _remoteToken),
             "Invalid token pair"
         );
 
-        if (_isL2Usdc(_localToken) && _isL1Usdc(_remoteToken)) {
+        if (_isL2Fiat(_localToken) && _isL1Fiat(_remoteToken)) {
             // L1 --> L2
             IPartialFiat(_localToken).mint(_to, _amount);
-        } else if (_isL1Usdc(_localToken) && _isL2Usdc(_remoteToken)) {
+        } else if (_isL1Fiat(_localToken) && _isL2Fiat(_remoteToken)) {
             // L2 --> L1
             deposits[_localToken][_remoteToken] =
                 deposits[_localToken][_remoteToken] -
@@ -319,16 +319,16 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
         bytes memory _extraData
     ) internal whenNotPaused {
         require(
-            _isCorrectUsdcTokenPair(_localToken, _remoteToken),
+            _isCorrectFiatTokenPair(_localToken, _remoteToken),
             "Invalid token pair"
         );
 
-        if (_isL2Usdc(_localToken) && _isL1Usdc(_remoteToken)) {
+        if (_isL2Fiat(_localToken) && _isL1Fiat(_remoteToken)) {
             // L2 --> L1
             // fiat has no burnFrom, so first transfer to the contract and then burn.
             IERC20(_localToken).safeTransferFrom(_from, address(this), _amount);
             IPartialFiat(_localToken).burn(_amount);
-        } else if (_isL1Usdc(_localToken) && _isL2Usdc(_remoteToken)) {
+        } else if (_isL1Fiat(_localToken) && _isL2Fiat(_remoteToken)) {
             // L1 --> L2
             IERC20(_localToken).safeTransferFrom(_from, address(this), _amount);
             deposits[_localToken][_remoteToken] =
@@ -423,7 +423,7 @@ abstract contract UsdcBridge is Initializable, Pausable, Ownable {
     /// @notice Returns whether or not the given tokens match the fiat pair.
     /// @param _localToken  Address of the ERC20 on this chain
     /// @param _remoteToken Address of the ERC20 on the remote chain.
-    function _isCorrectUsdcTokenPair(
+    function _isCorrectFiatTokenPair(
         address _localToken,
         address _remoteToken
     ) internal view virtual returns (bool);
