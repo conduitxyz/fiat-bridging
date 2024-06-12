@@ -5,19 +5,19 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {SafeCall} from "src/libraries/SafeCall.sol";
-import {CrossDomainMessenger} from "src/universal/CrossDomainMessenger.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {Pausable} from "src/libraries/Pausable.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IPartialFiat} from "src/L1/IPartialFiat.sol";
+import {SafeCall} from "../libraries/SafeCall.sol";
+import {CrossDomainMessenger} from "../universal/CrossDomainMessenger.sol";
+import {Pausable} from "../libraries/Pausable.sol";
+import {IPartialFiat} from "../interfaces/IPartialFiat.sol";
 
 /// @custom:upgradeable
-/// @title FiatBridges
-/// @notice FiatBridges is a base contract for the L1 and L2 standard ERC20 bridges. It handles
+/// @title FiatBridge
+/// @notice FiatBridge is a base contract for the L1 and L2 standard ERC20 bridges. It handles
 ///         the core bridging logic, including escrowing tokens that are native to the local chain
 ///         and minting/burning tokens that are native to the remote chain.
-abstract contract FiatBridges is Initializable, Pausable, Ownable {
+abstract contract FiatBridge is Initializable, Pausable, Ownable {
     using SafeERC20 for IERC20;
 
     /// @notice The L2 gas limit set when eth is depoisited using the receive() function.
@@ -42,13 +42,13 @@ abstract contract FiatBridges is Initializable, Pausable, Ownable {
 
     /// @notice Corresponding bridge on the other domain.
     /// @custom:network-specific
-    FiatBridges public otherBridge;
+    FiatBridge public otherBridge;
 
     /// @notice Address of the token on L1.
-    address public l1Usdc;
+    address public l1Fiat;
 
     /// @notice Address of the token on L2.
-    address public l2Usdc;
+    address public l2Fiat;
 
     /// @notice Reserve extra slots (to a total of 50) in the storage layout for future upgrades.
     ///         A gap size of 43 was chosen here, so that the first slot used in a child contract
@@ -93,7 +93,7 @@ abstract contract FiatBridges is Initializable, Pausable, Ownable {
     modifier onlyEOA() {
         require(
             !Address.isContract(msg.sender),
-            "FiatBridges: function can only be called from an EOA"
+            "FiatBridge: function can only be called from an EOA"
         );
         _;
     }
@@ -103,7 +103,7 @@ abstract contract FiatBridges is Initializable, Pausable, Ownable {
         require(
             msg.sender == address(messenger) &&
                 messenger.xDomainMessageSender() == address(otherBridge),
-            "FiatBridges: function can only be called from the other bridge"
+            "FiatBridge: function can only be called from the other bridge"
         );
         _;
     }
@@ -118,39 +118,39 @@ abstract contract FiatBridges is Initializable, Pausable, Ownable {
 
     /// @notice Initializer.
     /// @param _messenger   Contract for CrossDomainMessenger on this network.
-    /// @param _otherBridge Contract for the other FiatBridges contract.
-    function __FiatBridges_init(
+    /// @param _otherBridge Contract for the other FiatBridge contract.
+    function __FiatBridge_init(
         CrossDomainMessenger _messenger,
-        FiatBridges _otherBridge,
-        address _l1Usdc,
-        address _l2Usdc,
+        FiatBridge _otherBridge,
+        address _l1Fiat,
+        address _l2Fiat,
         address _owner
     ) internal onlyInitializing {
         require(
             address(_messenger) != address(0) &&
                 address(_otherBridge) != address(0) &&
-                _l1Usdc != address(0) &&
-                _l2Usdc != address(0) &&
+                _l1Fiat != address(0) &&
+                _l2Fiat != address(0) &&
                 _owner != address(0),
             "Zero address not allowed"
         );
         messenger = _messenger;
         otherBridge = _otherBridge;
-        l1Usdc = _l1Usdc;
-        l2Usdc = _l2Usdc;
+        l1Fiat = _l1Fiat;
+        l2Fiat = _l2Fiat;
         _transferOwnership(_owner);
     }
 
     /// @notice Checks if the given token is the correct l1 token.
     /// @param _token The token to check.
     function _isL2Fiat(address _token) internal view returns (bool) {
-        return _token == l2Usdc;
+        return _token == l2Fiat;
     }
 
     /// @notice Checks if the given token is the correct l2 token.
     /// @param _token The token to check.
     function _isL1Fiat(address _token) internal view returns (bool) {
-        return _token == l1Usdc;
+        return _token == l1Fiat;
     }
 
     /// @notice Allows EOAs to bridge ETH by sending directly to the bridge.
@@ -171,7 +171,7 @@ abstract contract FiatBridges is Initializable, Pausable, Ownable {
     ///         Public getter is legacy and will be removed in the future. Use `otherBridge` instead.
     /// @return Contract of the bridge on the other network.
     /// @custom:legacy
-    function OTHER_BRIDGE() external view returns (FiatBridges) {
+    function OTHER_BRIDGE() external view returns (FiatBridge) {
         return otherBridge;
     }
 
@@ -250,7 +250,7 @@ abstract contract FiatBridges is Initializable, Pausable, Ownable {
     }
 
     /// @notice Finalizes an ERC20 bridge on this chain. Can only be triggered by the other
-    ///         FiatBridges contract on the remote chain.
+    ///         FiatBridge contract on the remote chain.
     /// @param _localToken  Address of the ERC20 on this chain.
     /// @param _remoteToken Address of the corresponding token on the remote chain.
     /// @param _from        Address of the sender.

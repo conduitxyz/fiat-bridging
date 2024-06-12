@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { Types } from "src/libraries/Types.sol";
-import { Hashing } from "src/libraries/Hashing.sol";
-import { RLPWriter } from "src/libraries/rlp/RLPWriter.sol";
+import {Types} from "./Types.sol";
+import {Hashing} from "./Hashing.sol";
+import {RLPWriter} from "./rlp/RLPWriter.sol";
 
 /// @title Encoding
 /// @notice Encoding handles Optimism's various different encoding schemes.
@@ -13,12 +13,19 @@ library Encoding {
     ///         transaction is prefixed with 0x7e to identify its EIP-2718 type.
     /// @param _tx User deposit transaction to encode.
     /// @return RLP encoded L2 deposit transaction.
-    function encodeDepositTransaction(Types.UserDepositTransaction memory _tx) internal pure returns (bytes memory) {
-        bytes32 source = Hashing.hashDepositSource(_tx.l1BlockHash, _tx.logIndex);
+    function encodeDepositTransaction(
+        Types.UserDepositTransaction memory _tx
+    ) internal pure returns (bytes memory) {
+        bytes32 source = Hashing.hashDepositSource(
+            _tx.l1BlockHash,
+            _tx.logIndex
+        );
         bytes[] memory raw = new bytes[](8);
         raw[0] = RLPWriter.writeBytes(abi.encodePacked(source));
         raw[1] = RLPWriter.writeAddress(_tx.from);
-        raw[2] = _tx.isCreation ? RLPWriter.writeBytes("") : RLPWriter.writeAddress(_tx.to);
+        raw[2] = _tx.isCreation
+            ? RLPWriter.writeBytes("")
+            : RLPWriter.writeAddress(_tx.to);
         raw[3] = RLPWriter.writeUint(_tx.mint);
         raw[4] = RLPWriter.writeUint(_tx.value);
         raw[5] = RLPWriter.writeUint(uint256(_tx.gasLimit));
@@ -43,16 +50,20 @@ library Encoding {
         uint256 _value,
         uint256 _gasLimit,
         bytes memory _data
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
+    ) internal pure returns (bytes memory) {
         (, uint16 version) = decodeVersionedNonce(_nonce);
         if (version == 0) {
             return encodeCrossDomainMessageV0(_target, _sender, _data, _nonce);
         } else if (version == 1) {
-            return encodeCrossDomainMessageV1(_nonce, _sender, _target, _value, _gasLimit, _data);
+            return
+                encodeCrossDomainMessageV1(
+                    _nonce,
+                    _sender,
+                    _target,
+                    _value,
+                    _gasLimit,
+                    _data
+                );
         } else {
             revert("Encoding: unknown cross domain message version");
         }
@@ -69,12 +80,15 @@ library Encoding {
         address _sender,
         bytes memory _data,
         uint256 _nonce
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodeWithSignature("relayMessage(address,address,bytes,uint256)", _target, _sender, _data, _nonce);
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodeWithSignature(
+                "relayMessage(address,address,bytes,uint256)",
+                _target,
+                _sender,
+                _data,
+                _nonce
+            );
     }
 
     /// @notice Encodes a cross domain message based on the V1 (current) encoding.
@@ -92,27 +106,27 @@ library Encoding {
         uint256 _value,
         uint256 _gasLimit,
         bytes memory _data
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodeWithSignature(
-            "relayMessage(uint256,address,address,uint256,uint256,bytes)",
-            _nonce,
-            _sender,
-            _target,
-            _value,
-            _gasLimit,
-            _data
-        );
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodeWithSignature(
+                "relayMessage(uint256,address,address,uint256,uint256,bytes)",
+                _nonce,
+                _sender,
+                _target,
+                _value,
+                _gasLimit,
+                _data
+            );
     }
 
     /// @notice Adds a version number into the first two bytes of a message nonce.
     /// @param _nonce   Message nonce to encode into.
     /// @param _version Version number to encode into the message nonce.
     /// @return Message nonce with version encoded into the first two bytes.
-    function encodeVersionedNonce(uint240 _nonce, uint16 _version) internal pure returns (uint256) {
+    function encodeVersionedNonce(
+        uint240 _nonce,
+        uint16 _version
+    ) internal pure returns (uint256) {
         uint256 nonce;
         assembly {
             nonce := or(shl(240, _version), _nonce)
@@ -124,11 +138,16 @@ library Encoding {
     /// @param _nonce Message nonce with version encoded into the first two bytes.
     /// @return Nonce without encoded version.
     /// @return Version of the message.
-    function decodeVersionedNonce(uint256 _nonce) internal pure returns (uint240, uint16) {
+    function decodeVersionedNonce(
+        uint256 _nonce
+    ) internal pure returns (uint240, uint16) {
         uint240 nonce;
         uint16 version;
         assembly {
-            nonce := and(_nonce, 0x0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff)
+            nonce := and(
+                _nonce,
+                0x0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+            )
             version := shr(240, _nonce)
         }
         return (nonce, version);
@@ -154,24 +173,23 @@ library Encoding {
         uint256 blobBaseFee,
         bytes32 hash,
         bytes32 batcherHash
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
-        bytes4 functionSignature = bytes4(keccak256("setL1BlockValuesEcotone()"));
-        return abi.encodePacked(
-            functionSignature,
-            baseFeeScalar,
-            blobBaseFeeScalar,
-            sequenceNumber,
-            timestamp,
-            number,
-            baseFee,
-            blobBaseFee,
-            hash,
-            batcherHash
+    ) internal pure returns (bytes memory) {
+        bytes4 functionSignature = bytes4(
+            keccak256("setL1BlockValuesEcotone()")
         );
+        return
+            abi.encodePacked(
+                functionSignature,
+                baseFeeScalar,
+                blobBaseFeeScalar,
+                sequenceNumber,
+                timestamp,
+                number,
+                baseFee,
+                blobBaseFee,
+                hash,
+                batcherHash
+            );
     }
 
     /// @notice Returns an appropriately encoded call to L1Block.setL1BlockValuesInterop
@@ -196,29 +214,34 @@ library Encoding {
         bytes32 _hash,
         bytes32 _batcherHash,
         uint256[] memory _dependencySet
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
-        require(_dependencySet.length <= type(uint8).max, "Encoding: dependency set length is too large");
-        // Check that the batcher hash is just the address with 0 padding to the left for version 0.
-        require(uint160(uint256(_batcherHash)) == uint256(_batcherHash), "Encoding: invalid batcher hash");
-
-        bytes4 functionSignature = bytes4(keccak256("setL1BlockValuesInterop()"));
-        return abi.encodePacked(
-            functionSignature,
-            _baseFeeScalar,
-            _blobBaseFeeScalar,
-            _sequenceNumber,
-            _timestamp,
-            _number,
-            _baseFee,
-            _blobBaseFee,
-            _hash,
-            _batcherHash,
-            uint8(_dependencySet.length),
-            _dependencySet
+    ) internal pure returns (bytes memory) {
+        require(
+            _dependencySet.length <= type(uint8).max,
+            "Encoding: dependency set length is too large"
         );
+        // Check that the batcher hash is just the address with 0 padding to the left for version 0.
+        require(
+            uint160(uint256(_batcherHash)) == uint256(_batcherHash),
+            "Encoding: invalid batcher hash"
+        );
+
+        bytes4 functionSignature = bytes4(
+            keccak256("setL1BlockValuesInterop()")
+        );
+        return
+            abi.encodePacked(
+                functionSignature,
+                _baseFeeScalar,
+                _blobBaseFeeScalar,
+                _sequenceNumber,
+                _timestamp,
+                _number,
+                _baseFee,
+                _blobBaseFee,
+                _hash,
+                _batcherHash,
+                uint8(_dependencySet.length),
+                _dependencySet
+            );
     }
 }

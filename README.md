@@ -1,66 +1,7 @@
-## Foundry
+## Fiat Bridging Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
-Foundry consists of:
+The files under optimism/ are a direct fork of the BOB USDC Bridge ([Proxy](https://explorer.gobob.xyz/address/0xe497788f8fcc30b773c9a181a0ffe2e60645ce90?tab=contract), [Implementation](https://explorer.gobob.xyz/address/0xF3f7831F9ebF1065dAD83b8Eb579b47D29F9198F)), and the USDC Manager [Contract](https://explorer.gobob.xyz/address/0x6b9f677B6c45c32F5f10A5EfA14bDfefE2135B67?tab=contract)
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+FiatMinterManager is a fork of the USDC manager contract, with additional functions to directly support minting and burning so that it can be used in conjunction with the Arbitrum Custom Gateway contract.

@@ -114,7 +114,7 @@ contract FiatManager is Ownable, Initializable, IArbToken {
     /* -------------------------------------------------------------------------- */
     /*                             Arb Token Functions                            */
     /* -------------------------------------------------------------------------- */
-    /// @info Functions allow contract to be a light wrapper for the L1 token.
+    // Functions allow contract to be a light wrapper for the L1 token.
     /// @notice User needs to approve the contract to spend FIAT first.
     function bridgeBurn(address account, uint256 amount) external override {
         require(msg.sender == l2CustomGateway, "Only the bridge can burn");

@@ -176,7 +176,7 @@ contract L2FiatBridge is FiatBridge, ISemver {
     ) internal {
         _initiateBridgeERC20(
             _l2Token,
-            l1Usdc,
+            l1Fiat,
             _from,
             _to,
             _amount,
