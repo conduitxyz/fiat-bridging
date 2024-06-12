@@ -4,6 +4,7 @@ pragma solidity ^0.8.15;
 import "forge-std/Script.sol";
 
 import {ArbMinter} from "src/arbitrum/ArbMinter.sol";
+import {MockMinter} from "tests/mocks/Minter.sol";
 
 contract DeployFiatArb is Script {
     function run() public {
@@ -18,15 +19,21 @@ contract DeployFiatArb is Script {
         console2.log("Deploying FiatManager");
         ArbMinter minter = new ArbMinter(deployerAddress);
 
+        if (masterMinterContract == address(0)) {
+            console2.log("Deploying MockMinter");
+            MockMinter mockMint = new MockMinter();
+            console2.log("Deployed MockMinter at address", address(minter));
+            masterMinterContract = address(mockMint);
+        }
+
         // Call FiatToken deploy script here
         // Initialize
+        console2.log("Initializing FiatManager");
         minter.initialize(
             customGatewayL2,
             masterMinterContract,
             l2Fiat,
             l1Fiat
         );
-
-        console2.log("Deploying Proxy");
     }
 }
