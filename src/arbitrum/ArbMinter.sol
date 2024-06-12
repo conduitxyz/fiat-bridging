@@ -31,7 +31,7 @@ interface IPartialFiat is IERC20 {
     function burn(uint256 _amount) external;
 }
 
-contract FiatManager is Ownable, Initializable, IArbToken {
+contract ArbMinter is Ownable, Initializable, IArbToken {
     address whitelistedTakeoverOrigin;
     address tokenProxyAddress;
     address masterMinterAddress;
@@ -49,6 +49,7 @@ contract FiatManager is Ownable, Initializable, IArbToken {
     /// @param _l2CustomGateway The L2 custom gateway address.
     /// @param _masterMinterAddress The MasterMinter address.
     /// @param _tokenProxyAddress The address of the FIAT token proxy.
+    /// @param _l1FiatAddress The address of the L1 token.
     function initialize(
         address _l2CustomGateway,
         address _masterMinterAddress,
@@ -58,7 +59,8 @@ contract FiatManager is Ownable, Initializable, IArbToken {
         require(
             _l2CustomGateway != address(0) &&
                 _masterMinterAddress != address(0) &&
-                _tokenProxyAddress != address(0),
+                _tokenProxyAddress != address(0) &&
+                _l1FiatAddress != address(0),
             "Zero address not allowed"
         );
         tokenProxyAddress = _tokenProxyAddress;
